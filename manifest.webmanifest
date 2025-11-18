@@ -1,1 +1,1 @@
-{"name":"breathe-in-and-out","short_name":"breathe-in-and-out","description":"","start_url":"./","display":"standalone","background_color":"#ffffff","theme_color":"#42b883","lang":"en","scope":"./"}
+{"name":"in-out","short_name":"in-out","description":"","start_url":"./","display":"standalone","background_color":"#ffffff","theme_color":"#42b883","lang":"en","scope":"./","icons":[{"src":"assets/icon.svg"}]}
