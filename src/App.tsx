@@ -1,4 +1,5 @@
 import { compile, glsl, uniform } from '@bigmistqke/view.gl/tag'
+import { makePersisted } from '@solid-primitives/storage'
 import clsx from 'clsx'
 import { AiFillPlayCircle, AiOutlinePause } from 'solid-icons/ai'
 import { createEffect, createSignal, For, onMount, Show, type Component } from 'solid-js'
@@ -39,17 +40,19 @@ function TimeControl(props: {
 const App: Component = () => {
   let canvas: HTMLCanvasElement = null!
 
-  const [config, setConfig] = createStore<{
-    in: number
-    out: number
-    color1: [number, number, number]
-    color2: [number, number, number]
-  }>({
-    in: 3,
-    out: 5,
-    color1: [1, 1, 1],
-    color2: [0, 0, 0],
-  })
+  const [config, setConfig] = makePersisted(
+    createStore<{
+      in: number
+      out: number
+      color1: [number, number, number]
+      color2: [number, number, number]
+    }>({
+      in: 3,
+      out: 5,
+      color1: [1, 1, 1],
+      color2: [0, 0, 0],
+    }),
+  )
   const [playing, setPlaying] = createSignal(false)
   const [phase, setPhase] = createSignal<'in' | 'out'>('in')
 
