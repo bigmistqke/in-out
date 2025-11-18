@@ -1,23 +1,34 @@
-import {} from '@bigmistqke/view.gl'
 import { compile, glsl, uniform } from '@bigmistqke/view.gl/tag'
 import clsx from 'clsx'
-import { createEffect, onMount, type Component } from 'solid-js'
+import { AiFillPlayCircle, AiOutlinePause } from 'solid-icons/ai'
+import { createEffect, createSignal, For, onMount, Show, type Component } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import styles from './App.module.css'
 import './index.css'
 
-function TimeControl(props: { value: number; onDecrement(): void; onIncrement(): void }) {
+function TimeControl(props: {
+  class?: string
+  value: number
+  onDecrement(): void
+  onIncrement(): void
+}) {
   return (
-    <div class={styles.timeControl}>
-      <h2 class={styles.timeValue}>{(props.value / 1_000).toFixed(1)}</h2>
-      <div class={styles.buttonContainer}>
+    <div class={clsx(styles.timeControl, props.class)}>
+      <div>
+        <For each={props.value.toFixed(1).split('')}>{char => <span>{char}</span>}</For>
+      </div>
+      <div>
         <button
-          class={clsx(styles.button, props.value <= 500 ? styles.disabled : false)}
-          onClick={() => (props.value > 500 ? props.onDecrement() : undefined)}
+          class={clsx(styles.button, props.value > 0.5 ? false : styles.disabled)}
+          onClick={() => (props.value > 0.5 ? props.onDecrement() : undefined)}
         >
           &minus;
         </button>
-        <button class={styles.button} onClick={props.onIncrement}>
+        <div />
+        <button
+          class={clsx(styles.button, props.value < 9.5 ? false : styles.disabled)}
+          onClick={() => (props.value < 99.5 ? props.onIncrement() : undefined)}
+        >
           +
         </button>
       </div>
@@ -34,18 +45,28 @@ const App: Component = () => {
     color1: [number, number, number]
     color2: [number, number, number]
   }>({
-    in: 3_000,
-    out: 5_000,
+    in: 3,
+    out: 5,
     color1: [1, 1, 1],
     color2: [0, 0, 0],
   })
+  const [playing, setPlaying] = createSignal(false)
+  const [phase, setPhase] = createSignal<'in' | 'out'>('in')
 
-  function setup() {
+  const direction = () => (phase() === 'in' ? 1 : -1)
+
+  function getGL() {
     const gl = canvas.getContext('webgl2', { antialias: true })
-    if (!gl)
+    if (!gl) {
       throw new Error(
         `Expected canvas.getContext('webgl2') to return WebGL2RenderingContext, but returned null`,
       )
+    }
+    return gl
+  }
+
+  function setup() {
+    const gl = getGL()
 
     const fragment = glsl`#version 300 es
 precision mediump float;
@@ -57,7 +78,7 @@ ${uniform.vec3('u_color1')}
 ${uniform.vec3('u_color2')}
 
 void main() {
-  if(v_uv[1] < u_value){
+  if(v_uv[1] > u_value){
     outColor = vec4(u_color1, 1.0);
   }else{
     outColor = vec4(u_color2, 1.0);
@@ -67,54 +88,69 @@ void main() {
 
     gl.useProgram(program)
 
-    let previous: number
-    let current = 0
-    let direction: 1 | -1 = 1
-
     createEffect(() => view.uniforms.u_color1.set(...config.color1))
     createEffect(() => view.uniforms.u_color2.set(...config.color2))
 
     function resize() {
       canvas.height = window.innerHeight
       canvas.width = window.innerWidth
-      gl?.viewport(0, 0, canvas.width, canvas.height)
+      gl.viewport(0, 0, canvas.width, canvas.height)
     }
 
     window.addEventListener('resize', resize)
     resize()
 
-    requestAnimationFrame(function render(time) {
-      try {
-        if (!previous) {
+    let animationFrame: number
+    let previous: number | undefined = undefined
+    let current = -1
+
+    function renderLoop() {
+      animationFrame = requestAnimationFrame(function render(time) {
+        if (!playing()) {
           return
         }
 
-        const delta = time - previous
-        const duration = direction === 1 ? config.in : config.out
-
-        if (duration <= 0) {
-          return
-        }
-
-        current += (delta * direction) / duration
-
-        if (direction > 0) {
-          if (current >= 1) {
-            direction = -1
+        try {
+          if (!previous) {
+            return
           }
-        } else {
-          if (current <= -1) {
-            direction = 1
+
+          const delta = time - previous
+          const duration = config[phase()]
+
+          if (duration <= 0) {
+            return
           }
+
+          current += (delta * direction()) / (duration * 1_000)
+
+          if (direction() > 0) {
+            if (current >= 1) {
+              setPhase('out')
+            }
+          } else {
+            if (current <= -1) {
+              setPhase('in')
+            }
+          }
+
+          view.attributes.a_quad.bind()
+          view.uniforms.u_value.set(current)
+
+          gl.drawArrays(gl.TRIANGLES, 0, 6)
+        } finally {
+          previous = time
+          requestAnimationFrame(render)
         }
+      })
+    }
 
-        view.attributes.a_quad.bind()
-        view.uniforms.u_value.set(current)
-
-        gl.drawArrays(gl.TRIANGLES, 0, 6)
-      } finally {
-        previous = time
-        requestAnimationFrame(render)
+    createEffect(() => {
+      if (playing()) {
+        renderLoop()
+      } else {
+        previous = undefined
+        cancelAnimationFrame(animationFrame)
       }
     })
   }
@@ -124,22 +160,38 @@ void main() {
   return (
     <>
       <div class={styles.ui}>
-        <header class={styles.header}>
-          <h1>IN</h1>
-          <h1>OUT</h1>
-        </header>
-        <div class={styles.timeControlContainer}>
+        <div
+          style={{
+            'z-index': 1,
+            position: 'fixed',
+            transform: 'translate(-50%, -50%)',
+            top: '50vh',
+            left: '50vw',
+            color: 'white',
+          }}
+        >
+          <button class={clsx(styles.button, styles.icon)} onClick={() => setPlaying(p => !p)}>
+            <Show when={playing()} fallback={<AiFillPlayCircle />}>
+              <AiOutlinePause />
+            </Show>
+          </button>
+        </div>
+        <section class={clsx(styles.panel, phase() === 'in' && styles.selected)}>
+          <h1 class={styles.panelTitle}>IN</h1>
           <TimeControl
             value={config.in}
-            onDecrement={() => setConfig('in', v => v - 500)}
-            onIncrement={() => setConfig('in', v => v + 500)}
+            onDecrement={() => setConfig('in', v => v - 0.5)}
+            onIncrement={() => setConfig('in', v => v + 0.5)}
           />
+        </section>
+        <section class={clsx(styles.panel, phase() === 'out' && styles.selected)}>
+          <h1 class={styles.panelTitle}>OUT</h1>
           <TimeControl
             value={config.out}
-            onDecrement={() => setConfig('out', v => v - 500)}
-            onIncrement={() => setConfig('out', v => v + 500)}
+            onDecrement={() => setConfig('out', v => v - 0.5)}
+            onIncrement={() => setConfig('out', v => v + 0.5)}
           />
-        </div>
+        </section>
       </div>
       <canvas ref={canvas} class={styles.canvas} />
     </>

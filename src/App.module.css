@@ -10,66 +10,81 @@ body {
 }
 
 .canvas {
-  position: fixed;
-  top: 0px;
-  left: 0px;
-  z-index: 1;
-  mix-blend-mode: exclusion;
   width: 100%;
-  height: 100%;
+  height: 100vh;
   pointer-events: none;
 }
 
 .ui {
   display: grid;
-  grid-template-rows: 1fr min-content;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  grid-template-columns: 1fr 1fr;
+  z-index: 1;
+  mix-blend-mode: exclusion;
   box-sizing: border-box;
   width: 100%;
-  height: 100vh;
+  height: 100%;
+  color: white;
 }
 
-.header {
+.panel {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  margin: 5px;
+  grid-template-rows: 1fr min-content;
+  opacity: 0.5;
+  transition: opacity 0.5s;
+  box-sizing: border-box;
+  padding-inline: 10px;
+  padding-block-end: 10px;
 
-  & > h1 {
-    font-weight: 300;
-    font-size: 72pt;
+  &.selected {
+    opacity: 1;
+
+    & .panelTitle {
+      text-decoration: underline;
+    }
   }
 }
 
-.timeControlContainer {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.panelTitle {
+  font-weight: 300;
+  font-size: 72pt;
 }
 
 .timeControl {
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  font-family: 'Anonymous Pro', monospace;
-}
+  display: flex;
+  flex-direction: column;
+  opacity: 0.75;
+  transition: opacity 0.5s;
+  margin-inline-start: 20px;
+  margin-block-end: 10px;
+  width: 75px;
+  font-size: 16pt;
 
-.timeValue {
-  align-self: center;
-  font-weight: 300;
-  font-size: 64pt;
-  text-align: center;
-}
-
-.buttonContainer {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  & > div {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    font-family: 'Anonymous Pro', monospace;
+  }
 }
 
 .button {
+  margin: 0px;
   border: 0px;
   background-color: transparent;
-  color: var(--color);
-  font-size: 48pt;
+  padding: 0px;
+  color: inherit;
+  font-size: inherit;
   font-family: inherit;
 
   &.disabled {
     opacity: 0.5;
   }
+}
+
+.icon > svg {
+  width: 75px;
+  height: 75px;
 }
