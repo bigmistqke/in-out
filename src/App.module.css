@@ -1,5 +1,8 @@
 * {
   -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 body {
@@ -9,11 +12,8 @@ body {
   width: 100vw;
   height: 100dvh;
   overflow: hidden;
-  touch-action: none;
   font-size: 16pt;
   font-family: 'Inter', sans-serif;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
 .overlayFilter {
@@ -103,8 +103,6 @@ body {
   margin-inline: 20px;
   margin-block-end: 10px;
   width: 75px;
-  user-select: none;
-  -webkit-user-select: none;
 
   & > div {
     display: flex;
@@ -116,6 +114,23 @@ body {
 
     & > * {
       padding-inline-start: 2px;
+    }
+
+    &.buttonContainer {
+      & > .button:first-child {
+        margin-left: -13px;
+      }
+      & > .button:last-child {
+        margin-right: -13px;
+      }
+      & > .button {
+        border: 1px dashed white;
+        border-radius: 50%;
+        padding-bottom: 2px;
+        aspect-ratio: 1 / 1;
+        width: 40px;
+        text-align: center;
+      }
     }
   }
 }
@@ -131,8 +146,6 @@ body {
   font-weight: 700;
   font-size: inherit;
   font-family: inherit;
-  user-select: none;
-  -webkit-user-select: none;
 
   &:hover {
     background-color: unset;

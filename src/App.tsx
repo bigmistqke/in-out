@@ -58,11 +58,11 @@ function createAudioApi() {
 function TimeControl(props: { class?: string; value: number; onInput(delta: number): void }) {
   function handleInput(delta: number) {
     if (delta < 0) {
-      if (props.value - delta > 0) {
+      if (props.value + delta > 0) {
         props.onInput(delta)
       }
     } else {
-      if (props.value - delta < 100) {
+      if (props.value + delta < 100) {
         props.onInput(delta)
       }
     }
@@ -85,14 +85,13 @@ function TimeControl(props: { class?: string; value: number; onInput(delta: numb
           {char => <span>{char}</span>}
         </For>
       </div>
-      <div>
+      <div class={styles.buttonContainer}>
         <button
           class={clsx(styles.button, props.value > 0.5 ? false : styles.disabled)}
           onPointerDown={event => handlePointer(event, -0.5)}
         >
           &minus;
         </button>
-        <div />
         <button
           class={clsx(styles.button, props.value < 99.5 ? false : styles.disabled)}
           onPointerDown={event => handlePointer(event, 0.5)}
