@@ -1,7 +1,15 @@
 import { compile, glsl, uniform } from '@bigmistqke/view.gl/tag'
 import clsx from 'clsx'
 import { AiFillPlayCircle, AiOutlinePause } from 'solid-icons/ai'
-import { createEffect, createSignal, For, onMount, Show, type Component } from 'solid-js'
+import {
+  createEffect,
+  createSelector,
+  createSignal,
+  For,
+  onMount,
+  Show,
+  type Component,
+} from 'solid-js'
 import { createStore } from 'solid-js/store'
 import styles from './App.module.css'
 import './index.css'
@@ -27,7 +35,7 @@ function TimeControl(props: {
         <div />
         <button
           class={clsx(styles.button, props.value < 9.5 ? false : styles.disabled)}
-          onClick={() => (props.value < 99.5 ? props.onIncrement() : undefined)}
+          onClick={() => (props.value < 9.5 ? props.onIncrement() : undefined)}
         >
           +
         </button>
@@ -53,7 +61,8 @@ const App: Component = () => {
   const [playing, setPlaying] = createSignal(false)
   const [phase, setPhase] = createSignal<'in' | 'out'>('in')
 
-  const direction = () => (phase() === 'in' ? 1 : -1)
+  const isPhaseSelected = createSelector(phase)
+  const direction = () => (isPhaseSelected('in') ? 1 : -1)
 
   function getGL() {
     const gl = canvas.getContext('webgl2', { antialias: true })
@@ -170,7 +179,13 @@ void main() {
             </Show>
           </button>
         </div>
-        <section class={clsx(styles.panel, (phase() === 'in' || !playing()) && styles.selected)}>
+        <section
+          class={clsx(
+            styles.panel,
+            !playing() && styles.pausing,
+            isPhaseSelected('in') && styles.selected,
+          )}
+        >
           <h1 class={styles.panelTitle}>IN</h1>
           <TimeControl
             value={config.in}
@@ -178,7 +193,13 @@ void main() {
             onIncrement={() => setConfig('in', v => v + 0.5)}
           />
         </section>
-        <section class={clsx(styles.panel, (phase() === 'out' || !playing()) && styles.selected)}>
+        <section
+          class={clsx(
+            styles.panel,
+            !playing() && styles.pausing,
+            isPhaseSelected('out') && styles.selected,
+          )}
+        >
           <h1 class={styles.panelTitle}>OUT</h1>
           <TimeControl
             value={config.out}

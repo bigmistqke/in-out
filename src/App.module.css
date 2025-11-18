@@ -45,19 +45,19 @@ body {
 
 .panel {
   display: grid;
-  grid-template-rows: 1fr min-content;
+  grid-template-rows: 1fr 125px;
   opacity: 0.5;
   transition: opacity 0.5s;
   box-sizing: border-box;
   padding-inline: 10px;
-  padding-block-end: 10px;
 
+  &.pausing,
   &.selected {
     opacity: 1;
+  }
 
-    & .panelTitle {
-      text-decoration: underline;
-    }
+  &.selected:not(.pausing) .panelTitle {
+    text-decoration: underline;
   }
 }
 
@@ -67,9 +67,7 @@ body {
 }
 
 .timeControl {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  display: grid;
   opacity: 0.75;
   transition: opacity 0.5s;
   margin-inline-start: 20px;
@@ -81,6 +79,7 @@ body {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    align-items: flex-start;
     font-family: 'Anonymous Pro', monospace;
 
     & > * {
