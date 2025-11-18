@@ -235,6 +235,7 @@ void main() {
         <section
           class={clsx(
             styles.panel,
+            styles.in,
             !playing() && styles.pausing,
             isPhaseSelected('in') && styles.selected,
           )}
@@ -249,6 +250,7 @@ void main() {
         <section
           class={clsx(
             styles.panel,
+            styles.out,
             !playing() && styles.pausing,
             isPhaseSelected('out') && styles.selected,
           )}
