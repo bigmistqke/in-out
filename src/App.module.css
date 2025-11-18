@@ -9,6 +9,7 @@ body {
   width: 100vw;
   height: 100dvh;
   overflow: hidden;
+  font-size: 10pt;
   font-family: 'Inter', sans-serif;
 }
 
@@ -84,7 +85,6 @@ body {
   margin-inline: 20px;
   margin-block-end: 10px;
   width: 75px;
-  font-size: 16pt;
   user-select: none;
 
   & > div {

@@ -164,7 +164,6 @@ void main() {
     function render() {
       view.attributes.a_quad.bind()
       view.uniforms.u_value.set(current)
-
       gl.drawArrays(gl.TRIANGLES, 0, 6)
     }
 
