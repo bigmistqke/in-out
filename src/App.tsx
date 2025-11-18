@@ -2,6 +2,7 @@ import { compile, glsl, uniform } from '@bigmistqke/view.gl/tag'
 import clsx from 'clsx'
 import { AiFillPlayCircle, AiOutlinePause } from 'solid-icons/ai'
 import {
+  batch,
   createEffect,
   createMemo,
   createSelector,
@@ -9,13 +10,14 @@ import {
   For,
   on,
   onMount,
-  Setter,
   Show,
   type Component,
 } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import styles from './App.module.css'
 import './index.css'
+
+const BREATHES_PER_SESSION = 10
 
 function createAudioApi() {
   const context = new AudioContext()
@@ -87,7 +89,8 @@ function TimeControl(props: {
 const App: Component = () => {
   let canvas: HTMLCanvasElement = null!
 
-  const [count, setCount] = createSignal(0)
+  const [sessionCount, setSessionCount] = createSignal(0)
+  const [breatheCount, setBreatheCount] = createSignal(0)
   const [config, setConfig] = createStore<{
     in: number
     out: number
@@ -98,18 +101,25 @@ const App: Component = () => {
   const [playing, setPlaying] = createSignal(false)
   const [phase, _setPhase] = createSignal<'in' | 'out'>('in')
 
-  const setPhase: Setter<'in' | 'out'> = newPhase => {
-    _setPhase(newPhase)
-    if (newPhase === 'in') {
-      setCount(count => count + 1)
-    }
-    audioApi()?.play(
-      isPhaseSelected('in')
-        ? // C2
-          130.81
-        : // G#3
-          207.65,
-    )
+  function setPhase(newPhase: 'in' | 'out') {
+    batch(() => {
+      _setPhase(newPhase)
+      audioApi()?.play(
+        isPhaseSelected('in')
+          ? // C2
+            130.81
+          : // G#3
+            207.65,
+      )
+      if (newPhase === 'in') {
+        setBreatheCount(count => count + 1)
+        if (breatheCount() === BREATHES_PER_SESSION) {
+          setPlaying(false)
+          setSessionCount(count => count + 1)
+          setBreatheCount(0)
+        }
+      }
+    })
   }
 
   const audioApi = createMemo(on(playing, createAudioApi, { defer: true }))
@@ -148,15 +158,6 @@ void main() {
 
     gl.useProgram(program)
 
-    function resize() {
-      canvas.height = window.innerHeight
-      canvas.width = window.innerWidth
-      gl.viewport(0, 0, canvas.width, canvas.height)
-    }
-
-    window.addEventListener('resize', resize)
-    resize()
-
     let animationFrame: number
     let previous: number | undefined = undefined
     let current = -1
@@ -167,45 +168,45 @@ void main() {
       gl.drawArrays(gl.TRIANGLES, 0, 6)
     }
 
-    function animate() {
-      animationFrame = requestAnimationFrame(function (time) {
-        try {
-          if (!previous) {
-            return
+    function animate(time: number) {
+      // Request next frame
+      animationFrame = requestAnimationFrame(animate)
+
+      if (previous) {
+        const delta = time - previous
+        const duration = config[phase()]
+
+        current += (delta * direction()) / (duration * 1_000)
+
+        if (direction() > 0) {
+          if (current >= 1) {
+            setPhase('out')
           }
-
-          const delta = time - previous
-          const duration = config[phase()]
-
-          if (duration <= 0) {
-            return
+        } else {
+          if (current <= -1) {
+            setPhase('in')
           }
-
-          current += (delta * direction()) / (duration * 1_000)
-
-          if (direction() > 0) {
-            if (current >= 1) {
-              setPhase('out')
-            }
-          } else {
-            if (current <= -1) {
-              setPhase('in')
-            }
-          }
-
-          render()
-        } finally {
-          previous = time
-          animate()
         }
-      })
+      }
+
+      render()
+
+      previous = time
     }
 
-    render()
+    function resize() {
+      canvas.height = window.innerHeight
+      canvas.width = window.innerWidth
+      gl.viewport(0, 0, canvas.width, canvas.height)
+      render()
+    }
+
+    window.addEventListener('resize', resize)
+    resize()
 
     createEffect(() => {
       if (playing()) {
-        animate()
+        animationFrame = requestAnimationFrame(animate)
       } else {
         previous = undefined
         cancelAnimationFrame(animationFrame)
@@ -228,7 +229,7 @@ void main() {
             </Show>
           </button>
           <span>
-            <Show when={count() > 0}>{count()}</Show>
+            <Show when={sessionCount() > 0 && !playing()}>session completed</Show>
           </span>
         </div>
         <section
