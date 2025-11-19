@@ -12,13 +12,12 @@ import {
   onMount,
   Show,
   Switch,
-  type Component,
 } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import styles from './App.module.css'
 import './index.css'
 
-const BREATHES_PER_SESSION = 1
+const BREATHES_PER_SESSION = 10
 
 function createAudioApi() {
   const context = new AudioContext()
@@ -91,12 +90,14 @@ function TimeControl(props: { class?: string; value: number; onInput(delta: numb
         <button
           class={clsx(styles.button, props.value > 0.5 ? false : styles.disabled)}
           onPointerDown={event => handlePointer(event, -0.5)}
+          onContextMenu={event => event.preventDefault()}
         >
           &minus;
         </button>
         <button
           class={clsx(styles.button, props.value < 99.5 ? false : styles.disabled)}
           onPointerDown={event => handlePointer(event, 0.5)}
+          onContextMenu={event => event.preventDefault()}
         >
           +
         </button>
@@ -128,7 +129,7 @@ function Overlay(props: { value: number }) {
   )
 }
 
-const App: Component = () => {
+export function App() {
   const [config, setConfig] = createStore<{
     in: number
     out: number
@@ -137,50 +138,30 @@ const App: Component = () => {
     out: 12,
   })
 
-  const [value, setValue] = createSignal(0)
   const [mode, setMode] = createSignal<'initial' | 'playing' | 'paused' | 'completed'>('initial')
-  const [breatheCount, setBreatheCount] = createSignal(0)
-  const [phase, _setPhase] = createSignal<'in' | 'out'>('in')
+  const [value, setValue] = createSignal(0)
+  const [count, setCount] = createSignal(0)
+  const [phase, setPhase] = createSignal<'in' | 'out'>('in')
 
+  const isModeSelected = createSelector(mode)
   const isPhaseSelected = createSelector(phase)
   const audioApi = createMemo(on(() => mode() !== 'initial', createAudioApi, { defer: true }))
   const direction = () => (isPhaseSelected('in') ? 1 : -1)
 
-  function setPhase(newPhase: 'in' | 'out') {
-    batch(() => {
-      _setPhase(newPhase)
-      audioApi()?.play(
-        isPhaseSelected('in')
-          ? // C2
-            130.81
-          : // G#3
-            207.65,
-      )
-      if (newPhase === 'in') {
-        setBreatheCount(count => count + 1)
-        if (breatheCount() === BREATHES_PER_SESSION) {
-          setMode('completed')
-          setBreatheCount(0)
-        }
-      }
-    })
-  }
-
-  function setup() {
+  onMount(() => {
     let animationFrame: number
     let previous: number | undefined = undefined
 
-    let stamp: number
-
     function animate(time: number) {
-      if (!stamp) {
-        stamp = time
-      }
       // Request next frame
       animationFrame = requestAnimationFrame(animate)
 
-      if (previous) {
-        const delta = time - previous
+      batch(() => {
+        const delta = previous && time - previous
+        previous = time
+
+        if (!delta) return
+
         const duration = config[phase()]
 
         setValue(value => (value += (delta * direction()) / (duration * 1_000)))
@@ -194,9 +175,7 @@ const App: Component = () => {
             setPhase('in')
           }
         }
-      }
-
-      previous = time
+      })
     }
 
     createEffect(() => {
@@ -207,9 +186,31 @@ const App: Component = () => {
         cancelAnimationFrame(animationFrame)
       }
     })
-  }
 
-  onMount(setup)
+    createEffect(
+      on(
+        phase,
+        () => {
+          audioApi()?.play(
+            isPhaseSelected('in')
+              ? // C2
+                130.81
+              : // G#3
+                207.65,
+          )
+
+          if (isPhaseSelected('in')) {
+            setCount(count => count + 1)
+            if (count() === BREATHES_PER_SESSION) {
+              setMode('completed')
+              setCount(0)
+            }
+          }
+        },
+        { defer: true },
+      ),
+    )
+  })
 
   return (
     <>
@@ -217,18 +218,16 @@ const App: Component = () => {
         <div class={styles.center}>
           <button
             class={clsx(styles.button, styles.playButton)}
-            onClick={() => setMode(mode => (mode === 'playing' ? 'paused' : 'playing'))}
+            onClick={() => setMode(() => (isModeSelected('playing') ? 'paused' : 'playing'))}
           >
-            <Show when={mode() === 'playing'} fallback={<AiFillPlayCircle />}>
+            <Show when={isModeSelected('playing')} fallback={<AiFillPlayCircle />}>
               <AiOutlinePause />
             </Show>
           </button>
           <span>
             <Switch>
-              <Match when={mode() === 'completed'}>Session Completed</Match>
-              <Match when={mode() === 'paused'}>
-                {BREATHES_PER_SESSION - breatheCount()} to go
-              </Match>
+              <Match when={isModeSelected('completed')}>Session Completed</Match>
+              <Match when={isModeSelected('paused')}>{BREATHES_PER_SESSION - count()} to go</Match>
             </Switch>
           </span>
         </div>
@@ -236,7 +235,7 @@ const App: Component = () => {
           class={clsx(
             styles.panel,
             styles.in,
-            mode() !== 'playing' && styles.pausing,
+            isModeSelected('playing') && styles.playing,
             isPhaseSelected('in') && styles.selected,
           )}
         >
@@ -247,7 +246,7 @@ const App: Component = () => {
           class={clsx(
             styles.panel,
             styles.out,
-            mode() !== 'playing' && styles.pausing,
+            isModeSelected('playing') && styles.playing,
             isPhaseSelected('out') && styles.selected,
           )}
         >
@@ -259,5 +258,3 @@ const App: Component = () => {
     </>
   )
 }
-
-export default App
