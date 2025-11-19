@@ -7,16 +7,18 @@ import {
   createSelector,
   createSignal,
   For,
+  Match,
   on,
   onMount,
   Show,
+  Switch,
   type Component,
 } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import styles from './App.module.css'
 import './index.css'
 
-const BREATHES_PER_SESSION = 10
+const BREATHES_PER_SESSION = 1
 
 function createAudioApi() {
   const context = new AudioContext()
@@ -114,7 +116,13 @@ function Overlay(props: { value: number }) {
         viewBox="0 0 100 100"
         class={styles.overlay}
       >
-        <rect x={0} y={0} height={100 - props.value * 100} width="100%" class={styles.overlayBar} />
+        <rect
+          x={0}
+          y={0}
+          height={Math.max(0, 100 - props.value * 100)}
+          width="100%"
+          class={styles.overlayBar}
+        />
       </svg>
     </>
   )
@@ -125,16 +133,17 @@ const App: Component = () => {
     in: number
     out: number
   }>({
-    in: 4.5,
-    out: 6,
+    in: 3.5,
+    out: 12,
   })
+
   const [value, setValue] = createSignal(0)
-  const [sessionCount, setSessionCount] = createSignal(0)
+  const [mode, setMode] = createSignal<'initial' | 'playing' | 'paused' | 'completed'>('initial')
   const [breatheCount, setBreatheCount] = createSignal(0)
-  const [playing, setPlaying] = createSignal(false)
   const [phase, _setPhase] = createSignal<'in' | 'out'>('in')
-  const audioApi = createMemo(on(playing, createAudioApi, { defer: true }))
+
   const isPhaseSelected = createSelector(phase)
+  const audioApi = createMemo(on(() => mode() !== 'initial', createAudioApi, { defer: true }))
   const direction = () => (isPhaseSelected('in') ? 1 : -1)
 
   function setPhase(newPhase: 'in' | 'out') {
@@ -150,8 +159,7 @@ const App: Component = () => {
       if (newPhase === 'in') {
         setBreatheCount(count => count + 1)
         if (breatheCount() === BREATHES_PER_SESSION) {
-          setPlaying(false)
-          setSessionCount(count => count + 1)
+          setMode('completed')
           setBreatheCount(0)
         }
       }
@@ -162,7 +170,12 @@ const App: Component = () => {
     let animationFrame: number
     let previous: number | undefined = undefined
 
+    let stamp: number
+
     function animate(time: number) {
+      if (!stamp) {
+        stamp = time
+      }
       // Request next frame
       animationFrame = requestAnimationFrame(animate)
 
@@ -187,7 +200,7 @@ const App: Component = () => {
     }
 
     createEffect(() => {
-      if (playing()) {
+      if (mode() === 'playing') {
         animationFrame = requestAnimationFrame(animate)
       } else {
         previous = undefined
@@ -204,21 +217,26 @@ const App: Component = () => {
         <div class={styles.center}>
           <button
             class={clsx(styles.button, styles.playButton)}
-            onClick={() => setPlaying(p => !p)}
+            onClick={() => setMode(mode => (mode === 'playing' ? 'paused' : 'playing'))}
           >
-            <Show when={playing()} fallback={<AiFillPlayCircle />}>
+            <Show when={mode() === 'playing'} fallback={<AiFillPlayCircle />}>
               <AiOutlinePause />
             </Show>
           </button>
           <span>
-            <Show when={sessionCount() > 0 && !playing()}>session completed</Show>
+            <Switch>
+              <Match when={mode() === 'completed'}>Session Completed</Match>
+              <Match when={mode() === 'paused'}>
+                {BREATHES_PER_SESSION - breatheCount()} to go
+              </Match>
+            </Switch>
           </span>
         </div>
         <section
           class={clsx(
             styles.panel,
             styles.in,
-            !playing() && styles.pausing,
+            mode() !== 'playing' && styles.pausing,
             isPhaseSelected('in') && styles.selected,
           )}
         >
@@ -229,7 +247,7 @@ const App: Component = () => {
           class={clsx(
             styles.panel,
             styles.out,
-            !playing() && styles.pausing,
+            mode() !== 'playing' && styles.pausing,
             isPhaseSelected('out') && styles.selected,
           )}
         >
