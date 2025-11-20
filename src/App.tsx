@@ -173,12 +173,20 @@ export function App() {
       })
     }
 
+    let wakeLock: WakeLockSentinel | null
     createEffect(() => {
       if (mode() === 'playing') {
         animationFrame = requestAnimationFrame(animate)
+
+        // Request to keep application awake
+        navigator.wakeLock
+          .request('screen')
+          .then(_wakeLock => (wakeLock = _wakeLock))
+          .catch(console.error)
       } else {
         previous = undefined
         cancelAnimationFrame(animationFrame)
+        wakeLock = null
       }
     })
 
