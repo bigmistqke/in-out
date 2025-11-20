@@ -6,7 +6,6 @@ import {
   createMemo,
   createSelector,
   createSignal,
-  For,
   Match,
   on,
   onMount,
@@ -81,26 +80,22 @@ function TimeControl(props: { class?: string; value: number; onInput(delta: numb
 
   return (
     <div class={clsx(styles.timeControl, props.class)}>
-      <div>
-        <For each={props.value.toFixed(1).replace('.', ',').split('')}>
-          {char => <span>{char}</span>}
-        </For>
+      <div class={styles.top}>
+        <div class={props.value > 0.5 ? undefined : styles.disabled}>&minus;</div>
+        <output>{props.value.toFixed(1).replace('.', ',')}</output>
+        <div class={props.value < 99.5 ? undefined : styles.disabled}>+</div>
       </div>
-      <div class={styles.buttonContainer}>
+      <div class={styles.bottom}>
         <button
-          class={clsx(styles.button, props.value > 0.5 ? false : styles.disabled)}
+          class={styles.button}
           onPointerDown={event => handlePointer(event, -0.5)}
           onContextMenu={event => event.preventDefault()}
-        >
-          &minus;
-        </button>
+        />
         <button
-          class={clsx(styles.button, props.value < 99.5 ? false : styles.disabled)}
+          class={styles.button}
           onPointerDown={event => handlePointer(event, 0.5)}
           onContextMenu={event => event.preventDefault()}
-        >
-          +
-        </button>
+        />
       </div>
     </div>
   )

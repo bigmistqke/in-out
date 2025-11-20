@@ -73,7 +73,7 @@ body {
 
 .panel {
   display: grid;
-  grid-template-rows: 1fr 125px;
+  grid-template-rows: 1fr min-content;
   transition: opacity 0.5s;
   box-sizing: border-box;
   margin-inline: 20px;
@@ -88,49 +88,59 @@ body {
   &.out {
     justify-items: end;
   }
-}
 
-.panelTitle {
-  filter: blur(7px);
-  transition: filter 0.75s;
-  font-weight: 300;
-  font-size: 72pt;
-}
+  & .panelTitle {
+    filter: blur(7px);
+    transition: filter 0.75s;
+    font-weight: 300;
+    font-size: 72pt;
+  }
 
-.timeControl {
-  display: grid;
-  transition: filter 0.5s;
-  margin-inline: 20px;
-  margin-block-end: 10px;
-  width: 75px;
+  & .timeControl {
+    position: relative;
+    margin-block-end: 20px;
+    min-width: 140px;
+    max-width: 100%;
+    height: 40px;
+    overflow: hidden;
 
-  & > div {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: flex-start;
-    font-style: normal;
-    font-family: 'Anonymous Pro', monospace;
+    & > .top {
+      display: flex;
+      position: absolute;
+      top: 0px;
+      right: 0px;
+      bottom: 0px;
+      left: 0px;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1;
+      border: 1px solid rgb(130, 130, 130);
+      border-radius: 50px;
+      pointer-events: none;
 
-    & > * {
-      padding-inline-start: 2px;
-    }
+      font-style: normal;
+      font-family: 'Anonymous Pro', monospace;
 
-    &.buttonContainer {
-      & > .button:first-child {
-        margin-left: -13px;
+      & > div,
+      & > output {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
       }
-      & > .button:last-child {
-        margin-right: -13px;
-      }
-      & > .button {
-        border: 1px dashed white;
-        border-radius: 50%;
+
+      & > div {
         padding-bottom: 2px;
         aspect-ratio: 1 / 1;
         width: 40px;
         text-align: center;
       }
+    }
+
+    & > .bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      height: 100%;
     }
   }
 }
